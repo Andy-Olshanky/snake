@@ -1,11 +1,9 @@
 # Recreating Snake using the ggez crate in Rust to learn how to use the different features of ggez.
 
 To run this program simply do the following commands
-`git clone https://github.com/Andy-Olshanky/snake.git
-
+```git clone https://github.com/Andy-Olshanky/snake.git
 cd snake
-
-cargo run`
+cargo run```
 
 ## NOTE
 *You must have Rust installed on your device to be able to run this.*

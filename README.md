@@ -2,7 +2,9 @@
 
 To run this program simply do the following commands
 `git clone https://github.com/Andy-Olshanky/snake.git
+
 cd snake
+
 cargo run`
 
 ## NOTE

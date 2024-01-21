@@ -74,6 +74,68 @@ enum Direction {
     Right,
 }
 
+impl Direction {
+    pub fn inverse(self) -> Self {
+        match self {
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+        }
+    }
+
+    pub fn from_keycode(key: KeyCode) -> Option<Direction> {
+        match key {
+            KeyCode::Up => Some(Direction::Up),
+            KeyCode::Down => Some(Direction::Down),
+            KeyCode::Left => Some(Direction::Left),
+            KeyCode::Right => Some(Direction::Right),
+            _ => None,
+        }
+    }
+}
+
+// Basically an abstraction for the snake segments
+#[derive(Debug, Clone, Copy)]
+struct Segment {
+    pos: GridPosition,
+}
+
+impl Segment {
+    pub fn new(pos: GridPosition) -> Self {
+        Segment { pos }
+    }
+}
+
+// Another abstraction but for food
+struct Food {
+    pos: GridPosition,
+}
+
+impl Food {
+    pub fn new(pos: GridPosition) -> Self {
+        Food { pos }
+    }
+
+    // not great for scaling, look up InstanceArray or SpriteBatch for future projects
+    fn draw(&self, canvas: &mut graphics::Canvas) {
+        // r g b opacity
+        let color = [0.0, 0.0, 1.0, 1.0];
+
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest_rect(self.pos.into())
+                .color(color),
+        );
+    }
+}
+
+// TODO: Finish implementing example code
+// TODO: Add title screen w/ start and quit options
+// TODO: Add color to snake head
+// TODO: Add audio (title, background, ate a thing, and failure. And Success I guess but im def not getting that lol)
+// TODO: Add an end screen w/ start over, quit, and game over or you win message depending on end state
 fn main() {
     println!("Hello, world!");
 }

@@ -6,6 +6,6 @@ git clone https://github.com/Andy-Olshanky/snake.git
 cd snake
 cargo run
 ```
-### *You must have Rust installed on your device to be able to run this. Installation can be found here https://www.rust-lang.org/tools/install*
+### *You must have Rust installed on your device to be able to run this. Installation and instructions can be found here https://www.rust-lang.org/tools/install*
 
-Source code taken from https://github.com/ggez/ggez/blob/master/examples/04_snake.rs but some additional changes will be made as a personal challenge / to learn more about the crate tools
+Main source code taken from https://github.com/ggez/ggez/blob/master/examples/04_snake.rs but some additional changes will be made as a personal challenge / to learn more about the crate tools

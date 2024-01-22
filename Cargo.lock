@@ -2145,6 +2145,7 @@ dependencies = [
 name = "snake"
 version = "0.1.0"
 dependencies = [
+ "getrandom",
  "ggez",
  "oorandom",
 ]

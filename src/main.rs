@@ -4,15 +4,22 @@ use ggez::{
     Context, GameResult,
 };
 use oorandom::Rand32;
+use core::num;
 use std::collections::VecDeque;
 
 const GRID_SIZE: (i16, i16) = (30, 20);
+const TARGET_LENGTH: u32 = (GRID_SIZE.0 * GRID_SIZE.1) as u32;
 const GRID_CELL_SIZE: (i16, i16) = (32, 32);
 const SCREEN_SIZE: (f32, f32) = (
     GRID_SIZE.0 as f32 * GRID_CELL_SIZE.0 as f32,
     GRID_SIZE.1 as f32 * GRID_CELL_SIZE.1 as f32,
 );
 const DESIRED_FPS: u32 = 10;
+
+const TITLE_SCREEN: u8 = 1;
+const GAMEPLAY: u8 = 2;
+const GAME_LOSS: u8 = 3;
+const GAME_WIN: u8 = 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct GridPosition {
@@ -144,12 +151,14 @@ struct Snake {
     ate: Option<Ate>,
     last_update_dir: Direction,
     next_dir: Option<Direction>,
+    num_segments: u32,
 }
 
 impl Snake {
     pub fn new(pos: GridPosition) -> Self {
         let mut body = VecDeque::new();
         body.push_back(Segment::new((pos.x - 1, pos.y).into()));
+        let mut num_segments: u32 = (body.len() + 1) as u32;
         Snake {
             head: Segment::new(pos),
             dir: Direction::Right,
@@ -157,6 +166,7 @@ impl Snake {
             ate: None,
             last_update_dir: Direction::Right,
             next_dir: None,
+            num_segments: num_segments,
         }
     }
 
@@ -192,6 +202,7 @@ impl Snake {
             self.ate = Some(Ate::Itself);
         } else if self.eats(food) {
             self.ate = Some(Ate::Food);
+            self.num_segments += 1;
         } else {
             self.ate = None;
         }
@@ -229,6 +240,7 @@ struct GameState {
     food: Food,
     gameover: bool,
     rng: Rand32,
+    game_state: u8,
 }
 
 impl GameState {
@@ -246,6 +258,7 @@ impl GameState {
             food: Food::new(food_pos),
             gameover: false,
             rng,
+            game_state: TITLE_SCREEN
         }
     }
 }
@@ -320,6 +333,7 @@ impl event::EventHandler<ggez::GameError> for GameState {
 
 // TODO: Make sure the food does not collide with the snake when the food is made
 // TODO: Add title screen w/ start and quit options
+// TODO: Handle game state changes and the display for each
 // TODO: Add audio (title, background, ate a thing, and failure. And Success I guess but im def not getting that lol)
 // TODO: Add an end screen w/ start over, quit, and game over or you win message depending on end state
 fn main() -> GameResult {

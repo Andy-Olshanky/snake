@@ -275,12 +275,16 @@ impl event::EventHandler<ggez::GameError> for GameState {
                 if let Some(ate) = self.snake.ate {
                     match ate {
                         Ate::Food => {
+                            if self.snake.num_segments == TARGET_LENGTH {
+                                self.game_state = GAME_WIN;
+                            }
                             let new_food_pos =
                                 GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1);
                             self.food.pos = new_food_pos;
                         }
                         Ate::Itself => {
                             self.gameover = true;
+                            self.game_state = GAME_LOSS;
                         }
                     }
                 }

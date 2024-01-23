@@ -4,17 +4,16 @@ use ggez::{
     Context, GameResult,
 };
 use oorandom::Rand32;
-use core::num;
 use std::collections::VecDeque;
 
-const GRID_SIZE: (i16, i16) = (30, 20);
+const GRID_SIZE: (i16, i16) = (4, 4);
 const TARGET_LENGTH: u32 = (GRID_SIZE.0 * GRID_SIZE.1) as u32;
 const GRID_CELL_SIZE: (i16, i16) = (32, 32);
 const SCREEN_SIZE: (f32, f32) = (
     GRID_SIZE.0 as f32 * GRID_CELL_SIZE.0 as f32,
     GRID_SIZE.1 as f32 * GRID_CELL_SIZE.1 as f32,
 );
-const DESIRED_FPS: u32 = 10;
+const DESIRED_FPS: u32 = 2;
 
 const TITLE_SCREEN: u8 = 1;
 const GAMEPLAY: u8 = 2;
@@ -158,7 +157,7 @@ impl Snake {
     pub fn new(pos: GridPosition) -> Self {
         let mut body = VecDeque::new();
         body.push_back(Segment::new((pos.x - 1, pos.y).into()));
-        let mut num_segments: u32 = (body.len() + 1) as u32;
+        let num_segments: u32 = (body.len() + 1) as u32;
         Snake {
             head: Segment::new(pos),
             dir: Direction::Right,
@@ -238,7 +237,6 @@ impl Snake {
 struct GameState {
     snake: Snake,
     food: Food,
-    gameover: bool,
     rng: Rand32,
     game_state: u8,
 }
@@ -256,45 +254,12 @@ impl GameState {
         GameState {
             snake: Snake::new(snake_pos),
             food: Food::new(food_pos),
-            gameover: false,
             rng,
-            game_state: TITLE_SCREEN
+            game_state: GAMEPLAY,
         }
     }
-}
 
-impl event::EventHandler<ggez::GameError> for GameState {
-    fn update(&mut self, ctx: &mut Context) -> GameResult {
-        // built in timer that will cycle only when it is time
-
-        while ctx.time.check_update_time(DESIRED_FPS) {
-            if !self.gameover {
-                // First update the snake
-                self.snake.update(&self.food);
-                // Check if the snake ate something
-                if let Some(ate) = self.snake.ate {
-                    match ate {
-                        Ate::Food => {
-                            if self.snake.num_segments == TARGET_LENGTH {
-                                self.game_state = GAME_WIN;
-                            }
-                            let new_food_pos =
-                                GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1);
-                            self.food.pos = new_food_pos;
-                        }
-                        Ate::Itself => {
-                            self.gameover = true;
-                            self.game_state = GAME_LOSS;
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    fn draw(&mut self, ctx: &mut Context) -> GameResult {
+    fn draw_gameplay(&mut self, ctx: &mut Context) -> GameResult {
         // First make a clear canvas
         let mut canvas =
             graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 1.0, 0.0, 1.0]));
@@ -305,6 +270,67 @@ impl event::EventHandler<ggez::GameError> for GameState {
 
         // "Flush" the draw commands
         canvas.finish(ctx)?;
+
+        Ok(())
+    }
+
+    fn draw_title(&mut self, ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+
+    fn draw_win(&mut self, ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+
+    fn draw_loss(&mut self, ctx: &mut Context) -> GameResult {
+        Ok(())
+    }
+}
+
+impl event::EventHandler<ggez::GameError> for GameState {
+    fn update(&mut self, ctx: &mut Context) -> GameResult {
+        // built in timer that will cycle only when it is time
+
+        while ctx.time.check_update_time(DESIRED_FPS) {
+            match self.game_state {
+                TITLE_SCREEN => (),
+                GAME_LOSS => (),
+                GAME_WIN => (),
+                GAMEPLAY => {
+                    // First update the snake
+                    self.snake.update(&self.food);
+                    // Check if the snake ate something
+                    if let Some(ate) = self.snake.ate {
+                        match ate {
+                            Ate::Food => {
+                                if self.snake.num_segments == TARGET_LENGTH {
+                                    self.game_state = GAME_WIN;
+                                }
+                                let new_food_pos =
+                                    GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1);
+                                self.food.pos = new_food_pos;
+                            }
+                            Ate::Itself => {
+                                self.game_state = GAME_LOSS;
+                            }
+                        }
+                    }
+                }
+                _ => (),
+            }
+        }
+
+        Ok(())
+    }
+
+    fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        match self.game_state {
+            GAMEPLAY => self.draw_gameplay(ctx)?,
+            TITLE_SCREEN => self.draw_title(ctx)?,
+            GAME_LOSS => self.draw_loss(ctx)?,
+            GAME_WIN => self.draw_win(ctx)?,
+            _ => (),
+        }
 
         // Yield the thread until the next update and return success
         ggez::timer::yield_now();
@@ -343,12 +369,12 @@ impl event::EventHandler<ggez::GameError> for GameState {
 fn main() -> GameResult {
     // setup metadata about the game. Here title and author
     let (ctx, event_loop) = ggez::ContextBuilder::new("snake", "Me :)")
-    // Here is the title in the bar of the window
-    .window_setup(ggez::conf::WindowSetup::default().title("Snake!"))
-    // Here is the size of the window
-    .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1))
-    // Now we build. If it fails it'll panic with the message "Failed to build ggez context"
-    .build()?;
+        // Here is the title in the bar of the window
+        .window_setup(ggez::conf::WindowSetup::default().title("Snake!"))
+        // Here is the size of the window
+        .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1))
+        // Now we build. If it fails it'll panic with the message "Failed to build ggez context"
+        .build()?;
 
     // Make a gamestate
     let state = GameState::new();

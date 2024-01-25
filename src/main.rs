@@ -101,6 +101,16 @@ impl Direction {
             _ => None,
         }
     }
+
+    pub fn random_direction(rng: &mut Rand32) -> Self {
+        let rand_num = rng.rand_range(0..4);
+        match rand_num {
+            0 => Direction::Up,
+            1 => Direction::Down,
+            2 => Direction::Left,
+            _ => Direction::Right,
+        }
+    }
 }
 
 // Basically an abstraction for the snake segments
@@ -156,13 +166,14 @@ struct Snake {
 }
 
 impl Snake {
-    pub fn new(pos: GridPosition) -> Self {
+    pub fn new(pos: GridPosition, direction: Direction) -> Self {
         let mut body = VecDeque::new();
-        body.push_back(Segment::new((pos.x - 1, pos.y).into()));
+        let pos2 = GridPosition::new_from_move(pos, direction);
+        body.push_back(Segment::new((pos2.x, pos2.y).into()));
         let num_segments: u32 = (body.len() + 1) as u32;
         Snake {
             head: Segment::new(pos),
-            dir: Direction::Right,
+            dir: Direction::inverse(direction),
             body,
             ate: None,
             last_update_dir: Direction::Right,
@@ -234,6 +245,21 @@ impl Snake {
                 .color([1.0, 0.5, 0.0, 1.0]),
         );
     }
+
+    fn get_food_space(&self, rng: &mut Rand32) -> GridPosition {
+        let mut possible_positions: VecDeque<GridPosition> = VecDeque::new();
+        for x in 0..GRID_SIZE.0 {
+            for y in 0..GRID_SIZE.1 {
+                let position = GridPosition::new(x, y);
+                if !self.body.iter().any(|segment| segment.pos == position) && self.head.pos != position {
+                    possible_positions.push_back(position);
+                }
+            }
+        }
+        
+        let index = rng.rand_range(0..(possible_positions.len() as u32)) as usize;
+        possible_positions.get(index).copied().unwrap()
+    }
 }
 
 struct GameState {
@@ -248,20 +274,22 @@ struct GameState {
 
 impl GameState {
     pub fn new() -> Self {
-        let snake_pos = (GRID_SIZE.0 / 4, GRID_SIZE.1 / 2).into();
-
         let mut seed: [u8; 8] = [0; 8];
         getrandom::getrandom(&mut seed[..]).expect("Could not create RNG seed");
         let mut rng = Rand32::new(u64::from_ne_bytes(seed));
 
-        let food_pos = GridPosition::random(&mut rng, GRID_SIZE.0, GRID_SIZE.1);
+        let snake_pos = GridPosition::random(&mut rng, GRID_SIZE.0, GRID_SIZE.1);
+        let random_direction = Direction::random_direction(&mut rng);
+        let snake = Snake::new(snake_pos, random_direction);
+
+        let food_pos = snake.get_food_space(&mut rng);
 
         let title_screen = OptionScreen::new("Snake!", "Start", "Quit");
         let loss_screen = OptionScreen::new("Game Over", "Try Again?", "Quit");
         let win_screen = OptionScreen::new("You Won!", "Restart", "Quit");
 
         GameState {
-            snake: Snake::new(snake_pos),
+            snake,
             food: Food::new(food_pos),
             rng,
             game_state: TITLE_SCREEN,
@@ -320,7 +348,9 @@ impl GameState {
     }
     
     fn reset(&mut self) {
-        self.snake = Snake::new((GRID_SIZE.0 / 4, GRID_SIZE.1 / 2).into());
+        let snake_pos = GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1);
+        let random_direction = Direction::random_direction(&mut self.rng);
+        self.snake = Snake::new(snake_pos, random_direction);
         self.food = Food::new(GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1));
         self.game_state = GAMEPLAY;
     }
@@ -368,10 +398,9 @@ impl event::EventHandler<ggez::GameError> for GameState {
                             Ate::Food => {
                                 if self.snake.num_segments == TARGET_LENGTH {
                                     self.game_state = GAME_WIN;
+                                } else {
+                                    self.food.pos = self.snake.get_food_space(&mut self.rng);
                                 }
-                                let new_food_pos =
-                                    GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1);
-                                self.food.pos = new_food_pos;
                             }
                             Ate::Itself => {
                                 self.game_state = GAME_LOSS;
@@ -599,7 +628,6 @@ impl EventHandler for OptionScreen {
     }
 }
 
-// TODO: Make sure the food does not collide with the snake when the food is made
 // TODO: Clean up OptionScreens
 // TODO: Add audio (title, background, ate a thing, and failure. And Success I guess but im def not getting that lol)
 fn main() -> GameResult {

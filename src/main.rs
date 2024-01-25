@@ -1,7 +1,7 @@
 use ggez::{
-    event, graphics,
+    event, graphics::{self, Text, Rect, Color},
     input::keyboard::{KeyCode, KeyInput},
-    Context, GameResult,
+    Context, GameResult, mint::Point2,
 };
 use oorandom::Rand32;
 use std::collections::VecDeque;
@@ -239,6 +239,9 @@ struct GameState {
     food: Food,
     rng: Rand32,
     game_state: u8,
+    title_screen: OptionScreen,
+    loss_screen: OptionScreen,
+    win_screen: OptionScreen,
 }
 
 impl GameState {
@@ -251,11 +254,18 @@ impl GameState {
 
         let food_pos = GridPosition::random(&mut rng, GRID_SIZE.0, GRID_SIZE.1);
 
+        let title_screen = OptionScreen::new("Snake!", "Start", "Quit");
+        let loss_screen = OptionScreen::new("Game Over", "Try Again?", "Quit");
+        let win_screen = OptionScreen::new("You Won!", "Restart", "Quit");
+
         GameState {
             snake: Snake::new(snake_pos),
             food: Food::new(food_pos),
             rng,
-            game_state: GAMEPLAY,
+            game_state: TITLE_SCREEN,
+            title_screen,
+            loss_screen,
+            win_screen,
         }
     }
 
@@ -275,14 +285,32 @@ impl GameState {
     }
 
     fn draw_title(&mut self, ctx: &mut Context) -> GameResult {
+        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 0.0, 1.0]));
+
+        self.title_screen.draw(&mut canvas);
+
+        canvas.finish(ctx)?;
+
         Ok(())
     }
 
     fn draw_win(&mut self, ctx: &mut Context) -> GameResult {
+        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 1.0, 1.0]));
+
+        self.win_screen.draw(&mut canvas);
+
+        canvas.finish(ctx)?;
+
         Ok(())
     }
 
     fn draw_loss(&mut self, ctx: &mut Context) -> GameResult {
+        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::from([1.0, 0.0, 0.0, 1.0]));
+
+        self.loss_screen.draw(&mut canvas);
+
+        canvas.finish(ctx)?;
+
         Ok(())
     }
 }
@@ -361,8 +389,46 @@ impl event::EventHandler<ggez::GameError> for GameState {
     }
 }
 
+struct OptionScreen {
+    title: Text,
+    button1: Rect,
+    button2: Rect,
+    button1_text: Text,
+    button2_text: Text,
+}
+
+impl OptionScreen {
+    fn new(title: &str, button1_text: &str, button2_text: &str) -> Self {
+        let title = Text::new(title);
+        let button1 = Rect::new(SCREEN_SIZE.0 / 2.0 - 100.0, SCREEN_SIZE.1 / 2.0 + 50.0, SCREEN_SIZE.0 / 8.0, SCREEN_SIZE.1 / 10.0);
+        let button2 = Rect::new(SCREEN_SIZE.0 / 2.0 + 100.0, SCREEN_SIZE.1 / 2.0 + 50.0, SCREEN_SIZE.0 / 8.0, SCREEN_SIZE.1 / 10.0);
+        let button1_text = Text::new(button1_text);
+        let button2_text = Text::new(button2_text);
+
+        OptionScreen { title, button1, button2, button1_text, button2_text }
+    }
+
+    fn draw(&self, canvas: &mut graphics::Canvas) {
+        canvas.draw(&self.title, Point2 { x: SCREEN_SIZE.0 / 2.0, y: SCREEN_SIZE.1 / 2.0 - 100.0 });
+
+        canvas.draw(&graphics::Quad, graphics::DrawParam::new().dest_rect(self.button1).color(Color::WHITE));
+        let button1_center = Point2 {
+            x: self.button1.x + self.button1.w / 2.0,
+            y: self.button1.y + self.button1.h / 2.0
+        };
+        canvas.draw(&self.button1_text, graphics::DrawParam::new().dest(button1_center).color(Color::BLACK)); 
+
+        canvas.draw(&graphics::Quad, graphics::DrawParam::new().dest_rect(self.button2).color(Color::WHITE));
+        let button1_center = Point2 {
+            x: self.button2.x + self.button2.w / 2.0,
+            y: self.button2.y + self.button2.h / 2.0
+        };
+        canvas.draw(&self.button2_text, graphics::DrawParam::new().dest(button1_center).color(Color::BLACK)); 
+    }
+}
+
 // TODO: Make sure the food does not collide with the snake when the food is made
-// TODO: Add title screen w/ start and quit options
+// TODO: Add events to title and end screens
 // TODO: Handle game state changes and the display for each
 // TODO: Add audio (title, background, ate a thing, and failure. And Success I guess but im def not getting that lol)
 // TODO: Add an end screen w/ start over, quit, and game over or you win message depending on end state

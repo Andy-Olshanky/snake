@@ -1,7 +1,9 @@
 use ggez::{
-    event, graphics::{self, Text, Rect, Color},
+    event::{self, EventHandler, MouseButton},
+    graphics::{self, Color, Rect, Text},
     input::keyboard::{KeyCode, KeyInput},
-    Context, GameResult, mint::Point2,
+    mint::Point2,
+    Context, GameResult,
 };
 use oorandom::Rand32;
 use std::collections::VecDeque;
@@ -285,7 +287,8 @@ impl GameState {
     }
 
     fn draw_title(&mut self, ctx: &mut Context) -> GameResult {
-        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 0.0, 1.0]));
+        let mut canvas =
+            graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 0.0, 1.0]));
 
         self.title_screen.draw(&mut canvas);
 
@@ -295,7 +298,8 @@ impl GameState {
     }
 
     fn draw_win(&mut self, ctx: &mut Context) -> GameResult {
-        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 1.0, 1.0]));
+        let mut canvas =
+            graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 1.0, 1.0]));
 
         self.win_screen.draw(&mut canvas);
 
@@ -305,7 +309,8 @@ impl GameState {
     }
 
     fn draw_loss(&mut self, ctx: &mut Context) -> GameResult {
-        let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::from([1.0, 0.0, 0.0, 1.0]));
+        let mut canvas =
+            graphics::Canvas::from_frame(ctx, graphics::Color::from([1.0, 0.0, 0.0, 1.0]));
 
         self.loss_screen.draw(&mut canvas);
 
@@ -321,9 +326,33 @@ impl event::EventHandler<ggez::GameError> for GameState {
 
         while ctx.time.check_update_time(DESIRED_FPS) {
             match self.game_state {
-                TITLE_SCREEN => (),
-                GAME_LOSS => (),
-                GAME_WIN => (),
+                TITLE_SCREEN => {
+                    if self.title_screen.button1_clicked {
+                        self.game_state = GAMEPLAY;
+                    } else if self.title_screen.button2_clicked {
+                        std::process::exit(0);
+                    }
+                    self.title_screen.button1_clicked = false;
+                    self.title_screen.button2_clicked = false;
+                }
+                GAME_LOSS => {
+                    if self.loss_screen.button1_clicked {
+                        self.game_state = GAMEPLAY;
+                    } else if self.loss_screen.button2_clicked {
+                        std::process::exit(0);
+                    }
+                    self.loss_screen.button1_clicked = false;
+                    self.loss_screen.button2_clicked = false;
+                }
+                GAME_WIN => {
+                    if self.win_screen.button1_clicked {
+                        self.game_state = GAMEPLAY;
+                    } else if self.win_screen.button2_clicked {
+                        std::process::exit(0);
+                    }
+                    self.win_screen.button1_clicked = false;
+                    self.win_screen.button2_clicked = false;
+                }
                 GAMEPLAY => {
                     // First update the snake
                     self.snake.update(&self.food);
@@ -372,19 +401,97 @@ impl event::EventHandler<ggez::GameError> for GameState {
         input: KeyInput,
         _repeated: bool,
     ) -> Result<(), ggez::GameError> {
-        // Try to turn the keycode into a direction
-        if let Some(dir) = input.keycode.and_then(Direction::from_keycode) {
-            // If success, check if a new direction has been set
-            // and make sure it's different from snake.dir
-            // This is like buffering a new direction before the next one has been made
-            if self.snake.dir != self.snake.last_update_dir && dir.inverse() != self.snake.dir {
-                self.snake.next_dir = Some(dir);
-            } else if dir.inverse() != self.snake.last_update_dir {
-                // If no new direction has been set and it's not the inverse direction
-                // of the previous move, set the snake dir to the new one pressed
-                self.snake.dir = dir;
+        match self.game_state {
+            GAMEPLAY => {
+                // Try to turn the keycode into a direction
+                if let Some(dir) = input.keycode.and_then(Direction::from_keycode) {
+                    // If success, check if a new direction has been set
+                    // and make sure it's different from snake.dir
+                    // This is like buffering a new direction before the next one has been made
+                    if self.snake.dir != self.snake.last_update_dir
+                        && dir.inverse() != self.snake.dir
+                    {
+                        self.snake.next_dir = Some(dir);
+                    } else if dir.inverse() != self.snake.last_update_dir {
+                        // If no new direction has been set and it's not the inverse direction
+                        // of the previous move, set the snake dir to the new one pressed
+                        self.snake.dir = dir;
+                    }
+                }
+            }
+            TITLE_SCREEN => match input.keycode {
+                Some(KeyCode::Return) => {
+                    self.title_screen.button1_clicked = true;
+                }
+                Some(KeyCode::Escape) => {
+                    self.title_screen.button2_clicked = true;
+                }
+                _ => (),
+            },
+            GAME_LOSS => match input.keycode {
+                Some(KeyCode::Return) => {
+                    self.loss_screen.button1_clicked = true;
+                }
+                Some(KeyCode::Escape) => {
+                    self.loss_screen.button2_clicked = true;
+                }
+                _ => (),
+            },
+            GAME_WIN => match input.keycode {
+                Some(KeyCode::Return) => {
+                    self.win_screen.button1_clicked = true;
+                }
+                Some(KeyCode::Escape) => {
+                    self.win_screen.button2_clicked = true;
+                }
+                _ => (),
+            },
+            _ => (),
+        }
+
+        Ok(())
+    }
+
+    fn mouse_button_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        button: MouseButton,
+        x: f32,
+        y: f32,
+    ) -> Result<(), ggez::GameError> {
+        if button == MouseButton::Left {
+            match self.game_state {
+                TITLE_SCREEN => {
+                    if self.title_screen.button1.contains(Point2 { x, y }) {
+                        self.title_screen.button1_clicked = true;
+                    }
+
+                    if self.title_screen.button2.contains(Point2 { x, y }) {
+                        self.title_screen.button2_clicked = true;
+                    }
+                },
+                GAME_LOSS => {
+                    if self.loss_screen.button1.contains(Point2 { x, y }) {
+                        self.loss_screen.button1_clicked = true;
+                    }
+
+                    if self.loss_screen.button2.contains(Point2 { x, y }) {
+                        self.loss_screen.button2_clicked = true;
+                    }
+                },
+                GAME_WIN => {
+                    if self.win_screen.button1.contains(Point2 { x, y }) {
+                        self.win_screen.button1_clicked = true;
+                    }
+
+                    if self.win_screen.button2.contains(Point2 { x, y }) {
+                        self.win_screen.button2_clicked = true;
+                    }
+                },
+                _ => ()
             }
         }
+
         Ok(())
     }
 }
@@ -395,35 +502,94 @@ struct OptionScreen {
     button2: Rect,
     button1_text: Text,
     button2_text: Text,
+    button1_clicked: bool,
+    button2_clicked: bool,
 }
 
 impl OptionScreen {
     fn new(title: &str, button1_text: &str, button2_text: &str) -> Self {
         let title = Text::new(title);
-        let button1 = Rect::new(SCREEN_SIZE.0 / 2.0 - 100.0, SCREEN_SIZE.1 / 2.0 + 50.0, SCREEN_SIZE.0 / 8.0, SCREEN_SIZE.1 / 10.0);
-        let button2 = Rect::new(SCREEN_SIZE.0 / 2.0 + 100.0, SCREEN_SIZE.1 / 2.0 + 50.0, SCREEN_SIZE.0 / 8.0, SCREEN_SIZE.1 / 10.0);
+        let button1 = Rect::new(
+            SCREEN_SIZE.0 / 2.0 - 100.0,
+            SCREEN_SIZE.1 / 2.0 + 50.0,
+            SCREEN_SIZE.0 / 8.0,
+            SCREEN_SIZE.1 / 10.0,
+        );
+        let button2 = Rect::new(
+            SCREEN_SIZE.0 / 2.0 + 100.0,
+            SCREEN_SIZE.1 / 2.0 + 50.0,
+            SCREEN_SIZE.0 / 8.0,
+            SCREEN_SIZE.1 / 10.0,
+        );
         let button1_text = Text::new(button1_text);
         let button2_text = Text::new(button2_text);
 
-        OptionScreen { title, button1, button2, button1_text, button2_text }
+        OptionScreen {
+            title,
+            button1,
+            button2,
+            button1_text,
+            button2_text,
+            button1_clicked: false,
+            button2_clicked: false,
+        }
     }
 
     fn draw(&self, canvas: &mut graphics::Canvas) {
-        canvas.draw(&self.title, Point2 { x: SCREEN_SIZE.0 / 2.0, y: SCREEN_SIZE.1 / 2.0 - 100.0 });
+        canvas.draw(
+            &self.title,
+            Point2 {
+                x: SCREEN_SIZE.0 / 2.0,
+                y: SCREEN_SIZE.1 / 2.0 - 100.0,
+            },
+        );
 
-        canvas.draw(&graphics::Quad, graphics::DrawParam::new().dest_rect(self.button1).color(Color::WHITE));
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest_rect(self.button1)
+                .color(Color::WHITE),
+        );
         let button1_center = Point2 {
             x: self.button1.x + self.button1.w / 2.0,
-            y: self.button1.y + self.button1.h / 2.0
+            y: self.button1.y + self.button1.h / 2.0,
         };
-        canvas.draw(&self.button1_text, graphics::DrawParam::new().dest(button1_center).color(Color::BLACK)); 
+        canvas.draw(
+            &self.button1_text,
+            graphics::DrawParam::new()
+                .dest(button1_center)
+                .color(Color::BLACK),
+        );
 
-        canvas.draw(&graphics::Quad, graphics::DrawParam::new().dest_rect(self.button2).color(Color::WHITE));
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest_rect(self.button2)
+                .color(Color::WHITE),
+        );
         let button1_center = Point2 {
             x: self.button2.x + self.button2.w / 2.0,
-            y: self.button2.y + self.button2.h / 2.0
+            y: self.button2.y + self.button2.h / 2.0,
         };
-        canvas.draw(&self.button2_text, graphics::DrawParam::new().dest(button1_center).color(Color::BLACK)); 
+        canvas.draw(
+            &self.button2_text,
+            graphics::DrawParam::new()
+                .dest(button1_center)
+                .color(Color::BLACK),
+        );
+    }
+}
+
+impl EventHandler for OptionScreen {
+    fn update(&mut self, _ctx: &mut Context) -> Result<(), ggez::GameError> {
+        self.button1_clicked = false;
+        self.button2_clicked = false;
+
+        Ok(())
+    }
+
+    fn draw(&mut self, _ctx: &mut Context) -> Result<(), ggez::GameError> {
+        Ok(())
     }
 }
 

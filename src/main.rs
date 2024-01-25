@@ -600,10 +600,8 @@ impl EventHandler for OptionScreen {
 }
 
 // TODO: Make sure the food does not collide with the snake when the food is made
-// TODO: Add events to title and end screens
-// TODO: Handle game state changes and the display for each
+// TODO: Clean up OptionScreens
 // TODO: Add audio (title, background, ate a thing, and failure. And Success I guess but im def not getting that lol)
-// TODO: Add an end screen w/ start over, quit, and game over or you win message depending on end state
 fn main() -> GameResult {
     // setup metadata about the game. Here title and author
     let (ctx, event_loop) = ggez::ContextBuilder::new("snake", "Me :)")

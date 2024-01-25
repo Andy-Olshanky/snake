@@ -318,6 +318,12 @@ impl GameState {
 
         Ok(())
     }
+    
+    fn reset(&mut self) {
+        self.snake = Snake::new((GRID_SIZE.0 / 4, GRID_SIZE.1 / 2).into());
+        self.food = Food::new(GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1));
+        self.game_state = GAMEPLAY;
+    }
 }
 
 impl event::EventHandler<ggez::GameError> for GameState {
@@ -337,7 +343,7 @@ impl event::EventHandler<ggez::GameError> for GameState {
                 }
                 GAME_LOSS => {
                     if self.loss_screen.button1_clicked {
-                        self.game_state = GAMEPLAY;
+                        self.reset();
                     } else if self.loss_screen.button2_clicked {
                         std::process::exit(0);
                     }
@@ -346,7 +352,7 @@ impl event::EventHandler<ggez::GameError> for GameState {
                 }
                 GAME_WIN => {
                     if self.win_screen.button1_clicked {
-                        self.game_state = GAMEPLAY;
+                        self.reset();
                     } else if self.win_screen.button2_clicked {
                         std::process::exit(0);
                     }

@@ -403,7 +403,9 @@ impl GameState {
             self.played_death_sound = true;
         } 
         if !self.death_sound.playing() && self.played_death_sound {
-            self.loss_music.play(ctx)?;
+            if !self.loss_music.playing() {
+                self.loss_music.play(ctx)?;
+            }
         }
 
         let mut canvas =

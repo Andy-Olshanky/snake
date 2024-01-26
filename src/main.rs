@@ -1,4 +1,5 @@
 use ggez::{
+    audio::{SoundSource, Source},
     event::{self, EventHandler, MouseButton},
     graphics::{self, Color, Rect, Text},
     input::keyboard::{KeyCode, KeyInput},
@@ -8,14 +9,14 @@ use ggez::{
 use oorandom::Rand32;
 use std::collections::VecDeque;
 
-const GRID_SIZE: (i16, i16) = (30, 20);
+const GRID_SIZE: (i16, i16) = (4, 4);
 const TARGET_LENGTH: u32 = (GRID_SIZE.0 * GRID_SIZE.1) as u32;
 const GRID_CELL_SIZE: (i16, i16) = (32, 32);
 const SCREEN_SIZE: (f32, f32) = (
     GRID_SIZE.0 as f32 * GRID_CELL_SIZE.0 as f32,
     GRID_SIZE.1 as f32 * GRID_CELL_SIZE.1 as f32,
 );
-const DESIRED_FPS: u32 = 10;
+const DESIRED_FPS: u32 = 2;
 
 const TITLE_SCREEN: u8 = 1;
 const GAMEPLAY: u8 = 2;
@@ -251,12 +252,14 @@ impl Snake {
         for x in 0..GRID_SIZE.0 {
             for y in 0..GRID_SIZE.1 {
                 let position = GridPosition::new(x, y);
-                if !self.body.iter().any(|segment| segment.pos == position) && self.head.pos != position {
+                if !self.body.iter().any(|segment| segment.pos == position)
+                    && self.head.pos != position
+                {
                     possible_positions.push_back(position);
                 }
             }
         }
-        
+
         let index = rng.rand_range(0..(possible_positions.len() as u32)) as usize;
         possible_positions.get(index).copied().unwrap()
     }
@@ -270,10 +273,16 @@ struct GameState {
     title_screen: OptionScreen,
     loss_screen: OptionScreen,
     win_screen: OptionScreen,
+    title_music: Source,
+    game_music: Source,
+    win_music: Source,
+    death_sound: Source,
+    loss_music: Source,
+    played_death_sound: bool,
 }
 
 impl GameState {
-    pub fn new() -> Self {
+    pub fn new(ctx: &mut Context) -> Self {
         let mut seed: [u8; 8] = [0; 8];
         getrandom::getrandom(&mut seed[..]).expect("Could not create RNG seed");
         let mut rng = Rand32::new(u64::from_ne_bytes(seed));
@@ -288,6 +297,21 @@ impl GameState {
         let loss_screen = OptionScreen::new("Game Over", "Try Again?", "Quit");
         let win_screen = OptionScreen::new("You Won!", "Restart", "Quit");
 
+        let mut title_music = Source::new(ctx, "/snake_jazz.mp3").expect("Could not find snake jazz");
+        title_music.set_repeat(true);
+        let mut game_music =
+            Source::new(ctx, "/megalovania.mp3").expect("Could not find megalovania");
+        game_music.set_repeat(true);
+        game_music.set_volume(0.3);
+        let mut win_music =
+            Source::new(ctx, "/congratulations.mp3").expect("Could not find congratulations");
+        win_music.set_repeat(true);
+        let mut loss_music = Source::new(ctx, "/sad_violin.mp3").expect("Could not find sad violin");
+        loss_music.set_repeat(true);
+        let mut death_sound =
+            Source::new(ctx, "/snake.mp3").expect("Could not find snake snake snaaaaake");
+        death_sound.set_repeat(false);
+
         GameState {
             snake,
             food: Food::new(food_pos),
@@ -296,10 +320,33 @@ impl GameState {
             title_screen,
             loss_screen,
             win_screen,
+            title_music,
+            game_music,
+            win_music,
+            death_sound,
+            loss_music,
+            played_death_sound: false,
         }
     }
 
     fn draw_gameplay(&mut self, ctx: &mut Context) -> GameResult {
+        if self.title_music.playing() {
+            self.title_music.pause();
+        }
+        if self.death_sound.playing() {
+            self.death_sound.pause();
+        }
+        if self.loss_music.playing() {
+            self.loss_music.pause();
+        }
+        if self.win_music.playing() {
+            self.win_music.pause();
+        }
+        self.played_death_sound = false;
+        if !self.game_music.playing() {
+            self.game_music.play(ctx)?;
+        }
+
         // First make a clear canvas
         let mut canvas =
             graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 1.0, 0.0, 1.0]));
@@ -315,6 +362,10 @@ impl GameState {
     }
 
     fn draw_title(&mut self, ctx: &mut Context) -> GameResult {
+        if !self.title_music.playing() {
+            self.title_music.play(ctx)?;
+        }
+
         let mut canvas =
             graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 0.0, 1.0]));
 
@@ -326,6 +377,13 @@ impl GameState {
     }
 
     fn draw_win(&mut self, ctx: &mut Context) -> GameResult {
+        if self.game_music.playing() {
+            self.game_music.pause();
+        }
+        if !self.win_music.playing() {
+            self.win_music.play(ctx)?;
+        }
+
         let mut canvas =
             graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 1.0, 1.0]));
 
@@ -337,6 +395,17 @@ impl GameState {
     }
 
     fn draw_loss(&mut self, ctx: &mut Context) -> GameResult {
+        if self.game_music.playing() {
+            self.game_music.pause();
+        }
+        if !self.death_sound.playing() && !self.played_death_sound {
+            self.death_sound.play(ctx)?;
+            self.played_death_sound = true;
+        } 
+        if !self.death_sound.playing() && self.played_death_sound {
+            self.loss_music.play(ctx)?;
+        }
+
         let mut canvas =
             graphics::Canvas::from_frame(ctx, graphics::Color::from([1.0, 0.0, 0.0, 1.0]));
 
@@ -346,12 +415,16 @@ impl GameState {
 
         Ok(())
     }
-    
+
     fn reset(&mut self) {
         let snake_pos = GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1);
         let random_direction = Direction::random_direction(&mut self.rng);
         self.snake = Snake::new(snake_pos, random_direction);
-        self.food = Food::new(GridPosition::random(&mut self.rng, GRID_SIZE.0, GRID_SIZE.1));
+        self.food = Food::new(GridPosition::random(
+            &mut self.rng,
+            GRID_SIZE.0,
+            GRID_SIZE.1,
+        ));
         self.game_state = GAMEPLAY;
     }
 }
@@ -504,7 +577,7 @@ impl event::EventHandler<ggez::GameError> for GameState {
                     if self.title_screen.button2.contains(Point2 { x, y }) {
                         self.title_screen.button2_clicked = true;
                     }
-                },
+                }
                 GAME_LOSS => {
                     if self.loss_screen.button1.contains(Point2 { x, y }) {
                         self.loss_screen.button1_clicked = true;
@@ -513,7 +586,7 @@ impl event::EventHandler<ggez::GameError> for GameState {
                     if self.loss_screen.button2.contains(Point2 { x, y }) {
                         self.loss_screen.button2_clicked = true;
                     }
-                },
+                }
                 GAME_WIN => {
                     if self.win_screen.button1.contains(Point2 { x, y }) {
                         self.win_screen.button1_clicked = true;
@@ -522,8 +595,8 @@ impl event::EventHandler<ggez::GameError> for GameState {
                     if self.win_screen.button2.contains(Point2 { x, y }) {
                         self.win_screen.button2_clicked = true;
                     }
-                },
-                _ => ()
+                }
+                _ => (),
             }
         }
 
@@ -632,7 +705,7 @@ impl EventHandler for OptionScreen {
 // TODO: Add audio (title, background, ate a thing, and failure. And Success I guess but im def not getting that lol)
 fn main() -> GameResult {
     // setup metadata about the game. Here title and author
-    let (ctx, event_loop) = ggez::ContextBuilder::new("snake", "Me :)")
+    let (mut ctx, event_loop) = ggez::ContextBuilder::new("snake", "Me :)")
         // Here is the title in the bar of the window
         .window_setup(ggez::conf::WindowSetup::default().title("Snake!"))
         // Here is the size of the window
@@ -641,7 +714,7 @@ fn main() -> GameResult {
         .build()?;
 
     // Make a gamestate
-    let state = GameState::new();
+    let state = GameState::new(&mut ctx);
     // Run the jawn
     event::run(ctx, event_loop, state);
 }

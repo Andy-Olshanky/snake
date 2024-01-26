@@ -9,14 +9,14 @@ use ggez::{
 use oorandom::Rand32;
 use std::collections::VecDeque;
 
-const GRID_SIZE: (i16, i16) = (4, 4);
+const GRID_SIZE: (i16, i16) = (30, 20);
 const TARGET_LENGTH: u32 = (GRID_SIZE.0 * GRID_SIZE.1) as u32;
 const GRID_CELL_SIZE: (i16, i16) = (32, 32);
 const SCREEN_SIZE: (f32, f32) = (
     GRID_SIZE.0 as f32 * GRID_CELL_SIZE.0 as f32,
     GRID_SIZE.1 as f32 * GRID_CELL_SIZE.1 as f32,
 );
-const DESIRED_FPS: u32 = 2;
+const DESIRED_FPS: u32 = 10;
 
 const TITLE_SCREEN: u8 = 1;
 const GAMEPLAY: u8 = 2;

@@ -297,7 +297,8 @@ impl GameState {
         let loss_screen = OptionScreen::new("Game Over", "Try Again?", "Quit");
         let win_screen = OptionScreen::new("You Won!", "Restart", "Quit");
 
-        let mut title_music = Source::new(ctx, "/snake_jazz.mp3").expect("Could not find snake jazz");
+        let mut title_music =
+            Source::new(ctx, "/snake_jazz.mp3").expect("Could not find snake jazz");
         title_music.set_repeat(true);
         let mut game_music =
             Source::new(ctx, "/megalovania.mp3").expect("Could not find megalovania");
@@ -306,7 +307,8 @@ impl GameState {
         let mut win_music =
             Source::new(ctx, "/congratulations.mp3").expect("Could not find congratulations");
         win_music.set_repeat(true);
-        let mut loss_music = Source::new(ctx, "/sad_violin.mp3").expect("Could not find sad violin");
+        let mut loss_music =
+            Source::new(ctx, "/sad_violin.mp3").expect("Could not find sad violin");
         loss_music.set_repeat(true);
         let mut death_sound =
             Source::new(ctx, "/snake.mp3").expect("Could not find snake snake snaaaaake");
@@ -401,7 +403,7 @@ impl GameState {
         if !self.death_sound.playing() && !self.played_death_sound {
             self.death_sound.play(ctx)?;
             self.played_death_sound = true;
-        } 
+        }
         if !self.death_sound.playing() && self.played_death_sound {
             if !self.loss_music.playing() {
                 self.loss_music.play(ctx)?;

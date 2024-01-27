@@ -616,25 +616,38 @@ struct OptionScreen {
     button2_text: Text,
     button1_clicked: bool,
     button2_clicked: bool,
+    vertical_center: Rect,
+    horizontal_center: Rect,
 }
 
 impl OptionScreen {
     fn new(title: &str, button1_text: &str, button2_text: &str) -> Self {
         let title = Text::new(title);
+
+        let center_x = SCREEN_SIZE.0 / 2.0;
+        let center_y = SCREEN_SIZE.1 / 2.0;
+
+        let button_width = SCREEN_SIZE.0 / 8.0;
+        let button_height = SCREEN_SIZE.1 / 10.0;
+        let button_padding = SCREEN_SIZE.0 * 0.052;
+
         let button1 = Rect::new(
-            SCREEN_SIZE.0 / 2.0 - 100.0,
-            SCREEN_SIZE.1 / 2.0 + 50.0,
-            SCREEN_SIZE.0 / 8.0,
-            SCREEN_SIZE.1 / 10.0,
+            center_x - button_width - button_padding,
+            center_y + button_padding,
+            button_width,
+            button_height,
         );
         let button2 = Rect::new(
-            SCREEN_SIZE.0 / 2.0 + 100.0,
-            SCREEN_SIZE.1 / 2.0 + 50.0,
-            SCREEN_SIZE.0 / 8.0,
-            SCREEN_SIZE.1 / 10.0,
+            center_x + button_padding,
+            center_y + button_padding,
+            button_width,
+            button_height,
         );
         let button1_text = Text::new(button1_text);
         let button2_text = Text::new(button2_text);
+
+        let vertical_center = Rect::new(center_x, 0.0, 1.0, SCREEN_SIZE.1);
+        let horizontal_center = Rect::new(0.0, center_y, SCREEN_SIZE.0, 1.0);
 
         OptionScreen {
             title,
@@ -644,6 +657,8 @@ impl OptionScreen {
             button2_text,
             button1_clicked: false,
             button2_clicked: false,
+            vertical_center,
+            horizontal_center,
         }
     }
 
@@ -688,6 +703,19 @@ impl OptionScreen {
             graphics::DrawParam::new()
                 .dest(button1_center)
                 .color(Color::BLACK),
+        );
+
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest_rect(self.horizontal_center)
+                .color(Color::GREEN),
+        );
+        canvas.draw(
+            &graphics::Quad,
+            graphics::DrawParam::new()
+                .dest_rect(self.vertical_center)
+                .color(Color::GREEN),
         );
     }
 }

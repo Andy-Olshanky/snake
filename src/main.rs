@@ -293,7 +293,7 @@ impl GameState {
 
         let food_pos = snake.get_food_space(&mut rng);
 
-        let title_screen = OptionScreen::new("Snake!", "Start", "Quit");
+        let title_screen = OptionScreen::new("Snake Partially by Me", "Start", "Quit");
         let loss_screen = OptionScreen::new("Game Over", "Try Again?", "Quit");
         let win_screen = OptionScreen::new("You Won!", "Restart", "Quit");
 
@@ -371,7 +371,7 @@ impl GameState {
         let mut canvas =
             graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 0.0, 1.0]));
 
-        self.title_screen.draw(&mut canvas);
+        self.title_screen.draw(&mut canvas, ctx)?;
 
         canvas.finish(ctx)?;
 
@@ -389,7 +389,7 @@ impl GameState {
         let mut canvas =
             graphics::Canvas::from_frame(ctx, graphics::Color::from([0.0, 0.0, 1.0, 1.0]));
 
-        self.win_screen.draw(&mut canvas);
+        self.win_screen.draw(&mut canvas, ctx)?;
 
         canvas.finish(ctx)?;
 
@@ -413,7 +413,7 @@ impl GameState {
         let mut canvas =
             graphics::Canvas::from_frame(ctx, graphics::Color::from([1.0, 0.0, 0.0, 1.0]));
 
-        self.loss_screen.draw(&mut canvas);
+        self.loss_screen.draw(&mut canvas, ctx)?;
 
         canvas.finish(ctx)?;
 
@@ -662,12 +662,13 @@ impl OptionScreen {
         }
     }
 
-    fn draw(&self, canvas: &mut graphics::Canvas) {
+    fn draw(&self, canvas: &mut graphics::Canvas, ctx: &mut Context) -> GameResult {
+        let title_width = self.title.measure(ctx)?.x;
         canvas.draw(
             &self.title,
             Point2 {
-                x: SCREEN_SIZE.0 / 2.0,
-                y: SCREEN_SIZE.1 / 2.0 - 100.0,
+                x: SCREEN_SIZE.0 / 2.0 - title_width / 2.0,
+                y: SCREEN_SIZE.1 / 2.0 - (SCREEN_SIZE.1 * 0.15625),
             },
         );
 
@@ -717,6 +718,8 @@ impl OptionScreen {
                 .dest_rect(self.vertical_center)
                 .color(Color::GREEN),
         );
+
+        Ok(())
     }
 }
 

@@ -746,7 +746,6 @@ impl EventHandler for OptionScreen {
     }
 }
 
-// TODO: Clean up OptionScreens
 fn main() -> GameResult {
     // setup metadata about the game. Here title and author
     let (mut ctx, event_loop) = ggez::ContextBuilder::new("snake", "Me :)")

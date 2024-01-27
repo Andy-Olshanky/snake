@@ -303,7 +303,7 @@ impl GameState {
         let mut game_music =
             Source::new(ctx, "/megalovania.mp3").expect("Could not find megalovania");
         game_music.set_repeat(true);
-        game_music.set_volume(0.3);
+        game_music.set_volume(0.25);
         let mut win_music =
             Source::new(ctx, "/congratulations.mp3").expect("Could not find congratulations");
         win_music.set_repeat(true);
@@ -616,13 +616,14 @@ struct OptionScreen {
     button2_text: Text,
     button1_clicked: bool,
     button2_clicked: bool,
-    vertical_center: Rect,
-    horizontal_center: Rect,
+    _vertical_center: Rect,
+    _horizontal_center: Rect,
 }
 
 impl OptionScreen {
     fn new(title: &str, button1_text: &str, button2_text: &str) -> Self {
-        let title = Text::new(title);
+        let mut title = Text::new(title);
+        title.set_scale(32.0);
 
         let center_x = SCREEN_SIZE.0 / 2.0;
         let center_y = SCREEN_SIZE.1 / 2.0;
@@ -643,8 +644,11 @@ impl OptionScreen {
             button_width,
             button_height,
         );
-        let button1_text = Text::new(button1_text);
-        let button2_text = Text::new(button2_text);
+        let mut button1_text = Text::new(button1_text);
+        let mut button2_text = Text::new(button2_text);
+
+        button1_text.set_scale(20.0);
+        button2_text.set_scale(20.0);
 
         let vertical_center = Rect::new(center_x, 0.0, 1.0, SCREEN_SIZE.1);
         let horizontal_center = Rect::new(0.0, center_y, SCREEN_SIZE.0, 1.0);
@@ -657,8 +661,8 @@ impl OptionScreen {
             button2_text,
             button1_clicked: false,
             button2_clicked: false,
-            vertical_center,
-            horizontal_center,
+            _vertical_center: vertical_center,
+            _horizontal_center: horizontal_center,
         }
     }
 
@@ -678,10 +682,13 @@ impl OptionScreen {
                 .dest_rect(self.button1)
                 .color(Color::WHITE),
         );
+
+        let button1_text_measurements = self.button1_text.measure(ctx)?;
         let button1_center = Point2 {
-            x: self.button1.x + self.button1.w / 2.0,
-            y: self.button1.y + self.button1.h / 2.0,
+            x: self.button1.x + self.button1.w / 2.0 - button1_text_measurements.x / 2.0,
+            y: self.button1.y + self.button1.h / 2.0 - button1_text_measurements.y / 2.0,
         };
+
         canvas.draw(
             &self.button1_text,
             graphics::DrawParam::new()
@@ -695,29 +702,32 @@ impl OptionScreen {
                 .dest_rect(self.button2)
                 .color(Color::WHITE),
         );
-        let button1_center = Point2 {
-            x: self.button2.x + self.button2.w / 2.0,
-            y: self.button2.y + self.button2.h / 2.0,
+
+        let button2_text_measurements = self.button2_text.measure(ctx)?;
+        let button2_center = Point2 {
+            x: self.button2.x + self.button2.w / 2.0 - button2_text_measurements.x / 2.0,
+            y: self.button2.y + self.button2.h / 2.0 - button2_text_measurements.y / 2.0,
         };
+
         canvas.draw(
             &self.button2_text,
             graphics::DrawParam::new()
-                .dest(button1_center)
+                .dest(button2_center)
                 .color(Color::BLACK),
         );
 
-        canvas.draw(
-            &graphics::Quad,
-            graphics::DrawParam::new()
-                .dest_rect(self.horizontal_center)
-                .color(Color::GREEN),
-        );
-        canvas.draw(
-            &graphics::Quad,
-            graphics::DrawParam::new()
-                .dest_rect(self.vertical_center)
-                .color(Color::GREEN),
-        );
+        // canvas.draw(
+        //     &graphics::Quad,
+        //     graphics::DrawParam::new()
+        //         .dest_rect(self._horizontal_center)
+        //         .color(Color::GREEN),
+        // );
+        // canvas.draw(
+        //     &graphics::Quad,
+        //     graphics::DrawParam::new()
+        //         .dest_rect(self._vertical_center)
+        //         .color(Color::GREEN),
+        // );
 
         Ok(())
     }

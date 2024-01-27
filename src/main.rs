@@ -706,7 +706,6 @@ impl EventHandler for OptionScreen {
 }
 
 // TODO: Clean up OptionScreens
-// TODO: Add audio (title, background, ate a thing, and failure. And Success I guess but im def not getting that lol)
 fn main() -> GameResult {
     // setup metadata about the game. Here title and author
     let (mut ctx, event_loop) = ggez::ContextBuilder::new("snake", "Me :)")
